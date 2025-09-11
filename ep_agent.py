@@ -2,13 +2,17 @@ from bedrock_agentcore import BedrockAgentCoreApp
 from strands import Agent
 from strands.models import BedrockModel
 
-model = BedrockModel(
-            model_id="global.anthropic.claude-sonnet-4-20250514-v1:0",
-            region_name="us-east-1"
-        )
+def create_agent():
+    model = BedrockModel(
+        model_id="global.anthropic.claude-sonnet-4-20250514-v1:0",
+        region_name="us-east-1"
+    )
+    agent = Agent(model=model)
+    return agent
+
+agent = create_agent()
 
 app = BedrockAgentCoreApp()
-agent = Agent(model=model)
 
 @app.entrypoint
 def invoke(payload):
