@@ -113,12 +113,48 @@ try:
 
     agent_arn = runtime_config["agents"][agent_name]["bedrock_agentcore"]["agent_arn"]
 
-    invoke_endpoint(
-        agent_arn=agent_arn,
-        payload=json.dumps({"prompt": prompt, "actor_id": "DEFAULT"}),
-        bearer_token=access_token,
-        session_id=str(uuid.uuid4()),
-    )
+    # Define a function to invoke the agent
+    def invoke_agent(input_prompt):
+        return invoke_endpoint(
+            agent_arn=agent_arn,
+            payload=json.dumps({"prompt": input_prompt, "actor_id": "DEFAULT"}),
+            bearer_token=access_token,
+            session_id=str(uuid.uuid4()),
+        )
+    
+    # Initial greeting message
+    print("\n" + "="*50)
+    print("🤖 AI Agent Ready!")
+    print("Ask questions about questions or answers")
+    print("Type 'exit' or 'quit' to stop.")
+    print("="*50 + "\n")
+    
+    # Interactive chat loop
+    while True:
+        try:
+            user_input = input("You: ").strip()
+            
+            if user_input.lower() in ["exit", "quit", "bye"]:
+                print("Goodbye! 👋")
+                break
+            
+            if not user_input:
+                continue
+                
+            print("Agent: ", end="", flush=True)
+            invoke_agent(user_input)
+            print()  # Add newline after response
+            
+        except KeyboardInterrupt:
+            print("\n\nGoodbye! 👋")
+            break
+        except Exception as e:
+            print(f"\n❌ Error: {e}")
+            # Print more detailed error information
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error details:\n{error_details}")
+            print("Please try again or type 'exit' to quit.\n")
 
 except FileNotFoundError:
     print("❌ agent_config.json not found")
