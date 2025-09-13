@@ -16,7 +16,9 @@ logging.basicConfig(
 
 def create_streamable_http_transport(mcp_url, access_token):
     """Create a streamable HTTP transport with authorization header"""
-    return streamablehttp_client(mcp_url, headers={"Authorization": f"Bearer {access_token}"})
+    headers = {"Authorization": f"Bearer {access_token}"}
+    logging.info(f"Creating HTTP transport for URL: {mcp_url} with headers: Authorization: Bearer {access_token[:10]}...{access_token[-5:] if len(access_token) > 15 else ''}")
+    return streamablehttp_client(mcp_url, headers=headers)
 
 def get_full_tools_list(client):
     """Get all tools from the MCP client"""
@@ -24,16 +26,55 @@ def get_full_tools_list(client):
     more_tools = True
     tools = []
     pagination_token = None
-    while more_tools:
-        tmp_tools = client.list_tools_sync(pagination_token=pagination_token)
-        tools.extend(tmp_tools)
-        if tmp_tools.pagination_token is None:
-            more_tools = False
-        else:
-            more_tools = True
-            pagination_token = tmp_tools.pagination_token
+    page_count = 0
     
-    tool_names = [tool.tool_name for tool in tools]
+    try:
+        while more_tools:
+            page_count += 1
+            logging.info(f"Fetching tools page {page_count}")
+            tmp_tools = client.list_tools_sync(pagination_token=pagination_token)
+            
+            # Log the raw response for debugging
+            logging.info(f"Raw tools response: {str(tmp_tools)[:500]}")
+            
+            # Check if the tmp_tools is None or empty
+            if not tmp_tools:
+                logging.warning("Received empty tools response")
+                break
+                
+            tools.extend(tmp_tools)
+            
+            # Log details about each tool
+            for i, tool in enumerate(tmp_tools):
+                try:
+                    tool_info = {
+                        "tool_name": getattr(tool, "tool_name", "unknown"),
+                        "tool_id": getattr(tool, "tool_id", "unknown"),
+                        "description": getattr(tool, "description", "")[:100]
+                    }
+                    logging.info(f"Tool {i+1}: {json.dumps(tool_info)}")
+                except Exception as tool_err:
+                    logging.error(f"Error logging tool details: {str(tool_err)}")
+            
+            if tmp_tools.pagination_token is None:
+                more_tools = False
+                logging.info("No more tool pages")
+            else:
+                more_tools = True
+                pagination_token = tmp_tools.pagination_token
+                logging.info(f"More tools available, pagination token: {pagination_token}")
+    
+    except Exception as e:
+        logging.error(f"Error fetching tools: {str(e)}", exc_info=True)
+        # Try to get more details about the error
+        if hasattr(e, "response"):
+            try:
+                logging.error(f"Tools API Response status: {e.response.status_code}")
+                logging.error(f"Tools API Response content: {e.response.text}")
+            except:
+                pass
+    
+    tool_names = [getattr(tool, "tool_name", "unknown") for tool in tools]
     logging.info(f"Found {len(tools)} tools: {', '.join(tool_names) if tool_names else 'none'}")
     return tools
 
@@ -80,6 +121,13 @@ def invoke(payload):
     
     if "cognito_info" in config and "client_info" in config["cognito_info"]:
         try:
+            # Log client info (with sensitive data masked)
+            client_info = config["cognito_info"]["client_info"].copy()
+            if "client_secret" in client_info:
+                secret = client_info["client_secret"]
+                client_info["client_secret"] = f"{secret[:5]}...{secret[-5:]}" if len(secret) > 10 else "***masked***"
+            logging.info(f"Client info parameters: {json.dumps(client_info)}")
+            
             logging.info("Getting access token from Cognito")
             access_token = gateway_client.get_access_token_for_cognito(
                 config["cognito_info"]["client_info"]
@@ -96,25 +144,33 @@ def invoke(payload):
             
             # Get tools and create agent with them
             with mcp_client:
-                tools = get_full_tools_list(mcp_client)
-                agent = create_agent(tools=tools)
-                
-                # Process with the agent
-                logging.info("Processing message with agent using gateway tools")
-                result = agent(user_message, session_id=session_id)
-                logging.info("Request processed successfully")
-                return {"result": result.message}
+                try:
+                    tools = get_full_tools_list(mcp_client)
+                    agent = create_agent(tools=tools)
+                    
+                    # Process with the agent
+                    logging.info("Processing message with agent using gateway tools")
+                    logging.info(f"Request parameters - Message: '{user_message[:50]}...' Session ID: {session_id}")
+                    result = agent(user_message, session_id=session_id)
+                    logging.info(f"Raw response from agent: {str(result)[:500]}")
+                    logging.info("Request processed successfully")
+                    return {"result": result.message}
+                except Exception as inner_e:
+                    logging.error(f"Error during gateway interaction: {str(inner_e)}", exc_info=True)
+                    # Try to get more details about the error
+                    if hasattr(inner_e, "response"):
+                        try:
+                            logging.error(f"Response status: {inner_e.response.status_code}")
+                            logging.error(f"Response content: {inner_e.response.text}")
+                        except:
+                            pass
+                    raise inner_e
                 
         except Exception as e:
-            logging.error(f"Error accessing gateway: {str(e)}")
-            return {"result": f"Error accessing gateway: {str(e)}"}
-    
-    # Fallback to regular agent if gateway is not configured
-    logging.info("Using fallback agent without gateway tools")
-    agent = create_agent()
-    result = agent(user_message, session_id=session_id)
-    logging.info("Request processed with fallback agent")
-    return {"result": result.message}
+            logging.error(f"Error accessing gateway: {str(e)}", exc_info=True)
+            # Include the exception type in the error message
+            error_type = type(e).__name__
+            return {"result": f"Error accessing gateway: {error_type} - {str(e)}"}
 
 if __name__ == "__main__":
     logging.info("Starting Estate Planning Agent Gateway")
