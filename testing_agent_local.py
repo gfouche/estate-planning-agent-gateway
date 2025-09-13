@@ -25,7 +25,8 @@ class Colors:
 
 def print_header():
     """Print a welcome header for the test interface."""
-    print(f"\n{Colors.BOLD}{Colors.BLUE}=" * 70)
+    print(f"\n{Colors.BOLD}{Colors.BLUE}")
+    print("=" * 70)
     print("🔍 ESTATE PLANNING AGENT - LOCAL TESTING INTERFACE")
     print("=" * 70)
     print(f"""
@@ -35,7 +36,7 @@ This interface lets you interactively test your local estate planning agent.
 - Type {Colors.YELLOW}'state'{Colors.BLUE} to see the current agent state
 - Type {Colors.YELLOW}'exit'{Colors.BLUE} or {Colors.YELLOW}'quit'{Colors.BLUE} to end the session
 """)
-    print(f"=" * 70 + Colors.END)
+
 
 def invoke_agent(prompt: str, session_id: Optional[str] = None, endpoint: str = "http://localhost:8080/invocations") -> Dict[str, Any]:
     """
