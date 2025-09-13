@@ -171,6 +171,9 @@ def invoke(payload):
             # Include the exception type in the error message
             error_type = type(e).__name__
             return {"result": f"Error accessing gateway: {error_type} - {str(e)}"}
+    else:
+        logging.error("Missing required configuration: cognito_info or client_info not found in config")
+        return {"result": "Error: Missing required authentication configuration. Please check the agent_config.json file."}
 
 if __name__ == "__main__":
     logging.info("Starting Estate Planning Agent Gateway")
