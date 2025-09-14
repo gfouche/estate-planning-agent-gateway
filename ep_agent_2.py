@@ -15,9 +15,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-access_token = None
-gateway_url = None
-
 def load_configuration(config_path):
     """
     Load and validate configuration from the specified JSON file path
@@ -66,7 +63,47 @@ def get_access_token(gateway_client, client_info):
         logging.error(error_msg, exc_info=True)
         return None, error_msg
 
-def create_agent(access_token: str, gateway_url: str) -> Agent:
+def create_agent(config_path=None) -> Agent:
+    """
+    Create and initialize an Agent with Bedrock model and MCP client
+    
+    Args:
+        config_path (str, optional): Path to the configuration JSON file. 
+                                    If None, uses default path.
+    
+    Returns:
+        Agent: Initialized Agent instance with model and tools
+    """
+    # Initialize Gateway Client
+    logging.info("Initializing Gateway Client")
+    gateway_client = GatewayClient(region_name="us-east-1")
+    
+    # Load configuration
+    if config_path is None:
+        config_path = os.path.join(os.path.dirname(__file__), "agent_config.json")
+    
+    config = load_configuration(config_path)
+    access_token = None
+    gateway_url = None
+    
+    # Get access token and gateway URL
+    if "cognito_info" in config and "client_info" in config["cognito_info"]:
+        access_token, error = get_access_token(
+            gateway_client, 
+            config["cognito_info"]["client_info"]
+        )
+        
+        if access_token:
+            # Get gateway URL from configuration
+            gateway_url = config.get("gateway_url", "https://your-gateway-url.amazonaws.com")
+            logging.info(f"Using gateway URL: {gateway_url}")
+    else:
+        logging.error("Missing required configuration: cognito_info or client_info not found in config")
+        return None
+    
+    if not access_token or not gateway_url:
+        logging.error("Failed to initialize agent: Missing access token or gateway URL")
+        return None
  
     logging.info("Creating BedrockModel with Claude Sonnet us-east-1")
     model = BedrockModel(
@@ -87,34 +124,12 @@ def create_agent(access_token: str, gateway_url: str) -> Agent:
     
     return Agent(model=model, tools=tools)
 
-logging.info("Initializing Gateway Client")
-gateway_client = GatewayClient(region_name="us-east-1")
-
-# Load configuration
-config_path = os.path.join(os.path.dirname(__file__), "agent_config.json")
-config = load_configuration(config_path)
-
-# Get access token and gateway URL
-if "cognito_info" in config and "client_info" in config["cognito_info"]:
-    access_token, error = get_access_token(
-        gateway_client, 
-        config["cognito_info"]["client_info"]
-    )
-    
-    if access_token:
-        # Get gateway URL from configuration
-        gateway_url = config.get("gateway_url", "https://your-gateway-url.amazonaws.com")
-        logging.info(f"Using gateway URL: {gateway_url}")
-else:
-    logging.error("Missing required configuration: cognito_info or client_info not found in config")
-
 app = BedrockAgentCoreApp()
-agent = create_agent(access_token, gateway_url)
+agent = create_agent()
 
 @app.entrypoint
 def invoke(payload, context):
 
-    """Process incoming requests using the MCP client"""
     user_message = payload["prompt"]
     session_id = context.session_id
 
