@@ -14,6 +14,8 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+agent = None
+
 def create_streamable_http_transport(mcp_url, access_token):
     """Create a streamable HTTP transport with authorization header"""
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -87,8 +89,8 @@ def create_agent(tools=None):
     )
     tool_count = len(tools) if tools else 0
     logging.info(f"Initializing Agent with {tool_count} tools")
-    agent = Agent(model=model, tools=tools)
-    return agent
+
+    return Agent(model=model, tools=tools)
 
 # Load the agent configuration file
 config_path = os.path.join(os.path.dirname(__file__), "agent_config.json")
@@ -109,6 +111,8 @@ gateway_client = GatewayClient(region_name="us-east-1")
 
 @app.entrypoint
 def invoke(payload):
+    global agent
+
     """Process incoming requests using the MCP client"""
     user_message = payload.get("prompt", "Hello! How can I help you today?")
     session_id = payload.get("session_id")
@@ -146,7 +150,9 @@ def invoke(payload):
             with mcp_client:
                 try:
                     tools = get_full_tools_list(mcp_client)
-                    agent = create_agent(tools=tools)
+
+                    if not agent:
+                        agent = create_agent(tools=tools)
                     
                     # Process with the agent
                     logging.info("Processing message with agent using gateway tools")

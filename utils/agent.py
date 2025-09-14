@@ -12,33 +12,37 @@ from utils.formatting import Colors
 def invoke_agent(prompt: str, 
                 session_id: Optional[str] = None, 
                 endpoint: str = "http://localhost:8080/invocations") -> Dict[str, Any]:
-    """
-    Send a request to the locally running agent and return the response.
     
-    Args:
-        prompt: The user message to send to the agent
-        session_id: Optional session ID for continuing a conversation
-        endpoint: The URL of the local agent endpoint
-        
-    Returns:
-        The parsed JSON response from the agent
-    """
-    # Prepare the request payload
-    payload = {"prompt": prompt}
+    headers = {
+        # "Authorization": f"Bearer {bearer_token}",    
+        "Content-Type": "application/json",
+        "X-Amzn-Bedrock-AgentCore-Runtime-Session-Id": session_id,
+    }
+
+    payload = {
+        "prompt": prompt
+    }
+    
     if session_id:
         payload["session_id"] = session_id
-        
+
     try:
-        # Send the request to the local agent
+        body = json.loads(payload) if isinstance(payload, str) else payload
+    except json.JSONDecodeError:
+        body = {"payload": payload}
+        
+    print(f"\n{Colors.YELLOW}Sending request to: {endpoint}{Colors.END}")
+    print(f"{Colors.YELLOW}Session ID: {session_id}{Colors.END}")
+    print(f"{Colors.YELLOW}Payload: {json.dumps(payload, indent=2)}{Colors.END}")
+
+    try:
         response = requests.post(
             endpoint,
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=60
+            headers=headers,
+            json=body,
+            timeout=100,
+            stream=True,
         )
-        
-        # Check if the request was successful
-        response.raise_for_status()
         
         # Parse and return the JSON response
         return response.json()
