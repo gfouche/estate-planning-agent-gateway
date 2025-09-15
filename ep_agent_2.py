@@ -1,5 +1,7 @@
 
 from strands import Agent
+from pydantic import BaseModel, Field
+from typing import List, Optional, Any
 from strands.models import BedrockModel
 from strands.tools.mcp.mcp_client import MCPClient
 from mcp.client.streamable_http import streamablehttp_client
@@ -127,6 +129,19 @@ def create_agent(config_path=None) -> Agent:
 app = BedrockAgentCoreApp()
 agent = create_agent()
 
+class ToolResult(BaseModel):
+    tool_name: str
+    success: bool
+    data: Any
+    error_message: Optional[str] = None
+
+class AgentResponse(BaseModel):
+    status: str = Field(description="success, error, or partial")
+    message: str = Field(description="Human-readable response")
+    tools_used: List[ToolResult] = Field(default_factory=list)
+    action_required: bool = Field(default=False, description="Whether user action is needed")
+    metadata: dict = Field(default_factory=dict, description="Additional context")
+
 @app.entrypoint
 def invoke(payload, context):
 
@@ -138,8 +153,15 @@ def invoke(payload, context):
     
     logging.info(f"Received request with session ID: {session_id}")
 
-    result = agent(user_message)
-    return {"result": result.message}
+    response = agent(user_message)
+    structured_result = agent.structured_output(
+        AgentResponse,
+        "Format the response as JSON"
+    )
+
+    structured_result.message = response.message
+
+    return structured_result
 
 if __name__ == "__main__":
     logging.info("Starting Estate Planning Agent Gateway")

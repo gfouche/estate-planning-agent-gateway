@@ -1,0 +1,136 @@
+{
+    "status": "success",
+    "message": {
+        "role": "assistant",
+        "content": [
+            {
+                "text": "Great! I've successfully added the specific gift to your will. Here's what was updated:\n\n## Added Specific Gift:\n- **Recipient**: Glynn Fouche Jr (G-Money)\n- **Gift**: $10,000\n- **Has Specific Gifts**: Changed from \"false\" to \"true\"\n\n## Summary of How This Works:\nYour son Glynn Jr will now receive:\n1. **First**: The specific gift of $10,000 (paid out before the residuary distribution)\n2. **Then**: His 33.33% share of whatever remains in the estate after all specific gifts and expenses are paid\n\nThis means Glynn Jr benefits twice from your estate - once from the specific $10K gift and again from his equal share of the residuary estate.\n\nYour current will structure is now:\n- **Specific Gift**: $10,000 to Glynn Fouche Jr\n- **Residuary Distribution**: \n  - Glynn Fouche Jr: 33.33%\n  - Mike Kyle Fouche: 33.33%  \n  - Doctors without Borders: 33.34%\n\nIs there anything else you'd like to add or modify, or are you ready to proceed with generating your final will document?"
+            }
+        ]
+    },
+    "tools_used": [
+        {
+            "tool_name": "EstatePlanningLambdaTarget___update_answers",
+            "success": true,
+            "data": {
+                "statusCode": 200,
+                "result": {
+                    "userId": "glynn_fouche",
+                    "responses": {
+                        "client.address.state": "CO",
+                        "client.children": [
+                            {
+                                "name": "Glynn Fouche Jr",
+                                "DOB": "12/12/1993",
+                                "AKA": "G-Money"
+                            }
+                        ],
+                        "client.pets": [],
+                        "remainsPreference": "burial",
+                        "specificGifts": [
+                            {
+                                "recipient": "Glynn Fouche Jr",
+                                "description": "$10,000"
+                            }
+                        ],
+                        "representatives.healthcare.hasAlternates": false,
+                        "client.DOB": "10/10/1965",
+                        "client.hasPetProvisions": "no",
+                        "spouse.AKA": "",
+                        "spouse.DOB": "",
+                        "representatives.afterDeath.hasAlternates": false,
+                        "client.petsCareAmount": "",
+                        "client.fullName": "Glynn Fouche",
+                        "client.AKA": "",
+                        "client.hasChildren": "yes",
+                        "client.email": "gef@gmail.com",
+                        "client.DOM": "",
+                        "client.petsCaretaker": "",
+                        "representatives.incapacity.hasAlternates": false,
+                        "spouse.fullName": "",
+                        "client.maritalStatus": "single",
+                        "representatives.incapacity.primary.fullName": "Jimmy Jones",
+                        "representatives.afterDeath.alternates": [],
+                        "client.address.zip": "80123",
+                        "representatives.healthcare.alternates": [],
+                        "hasGuardians": "",
+                        "client.address.street": "123 Main St",
+                        "client.address.city": "Denver",
+                        "guardians": [],
+                        "hasSpecificGifts": true,
+                        "representatives.healthcare.primary.fullName": "Jimmy Jones",
+                        "residuaryNamedBeneficiaries": [
+                            {
+                                "name": "Glynn Fouche Jr",
+                                "share": "33.33%"
+                            },
+                            {
+                                "name": "Mike Kyle Fouche",
+                                "share": "33.33%"
+                            },
+                            {
+                                "name": "Doctors without Borders",
+                                "share": "33.34%"
+                            }
+                        ],
+                        "residuaryDistribution": "named",
+                        "maintainInHome": false,
+                        "representatives.incapacity.alternates": [],
+                        "client.gender": "male",
+                        "representatives.afterDeath.primary.fullName": "Jimmy Jones"
+                    },
+                    "updatedAt": "2025-09-15T22:36:57.415Z",
+                    "createdAt": "2025-09-15T22:36:57.415Z"
+                }
+            },
+            "error_message": null
+        }
+    ],
+    "action_required": false,
+    "metadata": {
+        "userId": "glynn_fouche",
+        "updatedFields": {
+            "specificGifts": [
+                {
+                    "recipient": "Glynn Fouche Jr",
+                    "description": "$10,000"
+                }
+            ],
+            "hasSpecificGifts": true
+        },
+        "currentWillStructure": {
+            "specificGifts": [
+                {
+                    "recipient": "Glynn Fouche Jr",
+                    "amount": "$10,000"
+                }
+            ],
+            "residuaryDistribution": [
+                {
+                    "name": "Glynn Fouche Jr",
+                    "share": "33.33%"
+                },
+                {
+                    "name": "Mike Kyle Fouche",
+                    "share": "33.33%"
+                },
+                {
+                    "name": "Doctors without Borders",
+                    "share": "33.34%"
+                }
+            ]
+        },
+        "benefitSummary": {
+            "GlynnFoucheJr": {
+                "specificGift": "$10,000",
+                "residuaryShare": "33.33%",
+                "totalBenefits": "Receives $10K first, then 33.33% of remaining estate"
+            }
+        },
+        "nextSteps": [
+            "Add more specific gifts",
+            "Add alternate representatives",
+            "Generate final will document"
+        ]
+    }
+}
