@@ -126,6 +126,12 @@ def create_agent(config_path=None) -> Agent:
     
     return Agent(model=model, tools=tools)
 
+def get_system_prompt():
+    return """
+You are an expert estate planning assistant. Your goal is to help users create and manage their estate plans, including wills, trusts, powers of attorney, and healthcare directives. You should provide clear, concise, and accurate information based on the user's needs and preferences.
+
+"""  
+
 app = BedrockAgentCoreApp()
 agent = create_agent()
 
@@ -159,7 +165,7 @@ def invoke(payload, context):
         "Format the response as JSON"
     )
 
-    structured_result.message = response.message
+    structured_result.message = str(response.message["content"][0]["text"])
 
     return structured_result
 
