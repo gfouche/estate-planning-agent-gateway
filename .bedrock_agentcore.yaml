@@ -21,7 +21,7 @@ agents:
     bedrock_agentcore:
       agent_id: ep_agent-vEtCeP3JkM
       agent_arn: arn:aws:bedrock-agentcore:us-east-1:561605471310:runtime/ep_agent-vEtCeP3JkM
-      agent_session_id: ad30138f-ebd5-4c60-8b3c-7981400ff64a
+      agent_session_id: null
     codebuild:
       project_name: bedrock-agentcore-ep_agent-builder
       execution_role: arn:aws:iam::561605471310:role/AmazonBedrockAgentCoreSDKCodeBuild-us-east-1-2d4fe0aa6c

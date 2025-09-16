@@ -1,3 +1,5 @@
 bedrock-agentcore
 strands-agents
 mcp-client
+bedrock-agentcore-starter-toolkit
+pydantic
