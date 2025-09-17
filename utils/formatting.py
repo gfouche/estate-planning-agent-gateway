@@ -144,11 +144,41 @@ def display_response(response: Dict[str, Any]) -> None:
             wrapped_text = wrapper.fill(str(response['result']))
             print(f"{Colors.GREEN}{wrapped_text}{Colors.END}")
     
-    # Display other fields with headers
+    # Display other fields with headers, but handle remote agent fields specially
+    excluded_fields = ["result", "error_details", "raw_response"]
     other_fields = {k: v for k, v in response.items() 
-                   if k not in ["result", "error_details"] and not k.startswith("_")}
+                   if k not in excluded_fields and not k.startswith("_")}
     
+    # Special handling for remote agent metadata
+    if "metadata" in response:
+        print(f"\n{Colors.YELLOW}{Colors.BOLD}📋 METADATA{Colors.END}")
+        print(f"{Colors.YELLOW}{'=' * 11}{Colors.END}")
+        formatted_metadata = format_value(response["metadata"], key="metadata")
+        print(formatted_metadata)
+    
+    # Special handling for tools_used
+    if "tools_used" in response:
+        tools = response.get("tools_used", [])
+        if tools:
+            print(f"\n{Colors.YELLOW}{Colors.BOLD}🔧 TOOLS USED{Colors.END}")
+            print(f"{Colors.YELLOW}{'=' * 13}{Colors.END}")
+            for i, tool in enumerate(tools, 1):
+                print(f"{Colors.YELLOW}{i}. {tool}{Colors.END}")
+    
+    # Special handling for action_required
+    if "action_required" in response:
+        action_required = response.get("action_required", False)
+        print(f"\n{Colors.YELLOW}{Colors.BOLD}❓ ACTION REQUIRED: {Colors.END}", end="")
+        if action_required:
+            print(f"{Colors.GREEN}Yes{Colors.END}")
+        else:
+            print(f"{Colors.RED}No{Colors.END}")
+    
+    # Handle remaining fields
     for key, value in other_fields.items():
+        if key in ["metadata", "tools_used", "action_required"]:
+            continue  # Already handled specially
+            
         if key == "error" and value is None:
             continue
             
