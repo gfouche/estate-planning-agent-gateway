@@ -8,7 +8,6 @@ from mcp.client.streamable_http import streamablehttp_client
 from bedrock_agentcore import BedrockAgentCoreApp
 from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayClient
 import os
-
 import json
 import logging
 
