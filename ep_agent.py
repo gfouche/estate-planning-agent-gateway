@@ -225,13 +225,11 @@ def invoke(payload, context):
 
     logging.info(f"Received request with session ID: {session_id}")
 
-    response = agent(user_message)
+    # Use structured_output to get both the response and structured data
     structured_result = agent.structured_output(
         AgentResponse,
-        "Format the response as JSON"
+        user_message  # Pass the user message directly to structured_output
     )
-
-    structured_result.message = str(response.message["content"][0]["text"])
 
     # Ensure answers is never None
     if structured_result.answers is None:
