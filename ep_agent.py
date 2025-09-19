@@ -10,6 +10,8 @@ from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayC
 import os
 import json
 import logging
+import time
+from random import uniform
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,24 +30,39 @@ def load_configuration(config_path):
         logging.error(f"Error loading configuration: {str(e)}")
         return {"gateway_url": "", "cognito_info": {"client_info": {}}}
 
-def get_access_token(gateway_client, client_info):
-    
-    try:
-        # Log client info (with sensitive data masked)
-        safe_client_info = client_info.copy()
-        if "client_secret" in safe_client_info:
-            secret = safe_client_info["client_secret"]
-            safe_client_info["client_secret"] = f"{secret[:5]}...{secret[-5:]}" if len(secret) > 10 else "***masked***"
-        logging.info(f"Client info parameters: {json.dumps(safe_client_info)}")
-        
-        logging.info("Getting access token from Cognito")
-        access_token = gateway_client.get_access_token_for_cognito(client_info)
-        logging.info("Access token obtained successfully")
-        return access_token, None
-    except Exception as e:
-        error_msg = f"Error accessing gateway: {str(e)}"
-        logging.error(error_msg, exc_info=True)
-        return None, error_msg
+def get_access_token(gateway_client, client_info, max_retries=3):
+
+    for attempt in range(max_retries):
+        try:
+            # Log client info (with sensitive data masked)
+            safe_client_info = client_info.copy()
+            if "client_secret" in safe_client_info:
+                secret = safe_client_info["client_secret"]
+                safe_client_info["client_secret"] = f"{secret[:5]}...{secret[-5:]}" if len(secret) > 10 else "***masked***"
+
+            if attempt == 0:
+                logging.info(f"Client info parameters: {json.dumps(safe_client_info)}")
+
+            logging.info(f"Getting access token from Cognito (attempt {attempt + 1}/{max_retries})")
+            access_token = gateway_client.get_access_token_for_cognito(client_info)
+            logging.info("Access token obtained successfully")
+            return access_token, None
+
+        except Exception as e:
+            error_str = str(e)
+            # Check if it's a rate limit error
+            if ("429" in error_str or "Too Many Requests" in error_str) and attempt < max_retries - 1:
+                # Exponential backoff with jitter
+                backoff = (2 ** attempt) + uniform(0, 1)
+                logging.warning(f"Rate limited on token fetch, retrying in {backoff:.2f} seconds...")
+                time.sleep(backoff)
+            else:
+                error_msg = f"Error accessing gateway: {error_str}"
+                logging.error(error_msg, exc_info=True)
+                return None, error_msg
+
+    # If we exhausted all retries
+    return None, f"Failed to get access token after {max_retries} attempts"
 
 def create_agent(config_path=None) -> Agent:
   
@@ -86,18 +103,35 @@ def create_agent(config_path=None) -> Agent:
         region_name="us-east-1"
     )
 
-    client = MCPClient(lambda: streamablehttp_client(
-            gateway_url,
-            headers={"Authorization": f"Bearer {access_token}"}
-    ))
+    # Create MCP client with retry logic
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            client = MCPClient(lambda: streamablehttp_client(
+                    gateway_url,
+                    headers={"Authorization": f"Bearer {access_token}"}
+            ))
 
-    client.start()    
-    logging.info("MCP Client created")
+            client.start()
+            logging.info("MCP Client created")
 
-    tools = client.list_tools_sync()
-    logging.info(f"Retrieved {len(tools)} tools from MCP gateway")
-    
-    return Agent(model=model, tools=tools)
+            tools = client.list_tools_sync()
+            logging.info(f"Retrieved {len(tools)} tools from MCP gateway")
+
+            return Agent(model=model, tools=tools)
+
+        except Exception as e:
+            error_str = str(e)
+            if ("429" in error_str or "Too Many Requests" in error_str) and attempt < max_retries - 1:
+                backoff = (2 ** attempt) + uniform(0, 1)
+                logging.warning(f"Rate limited on MCP connection (attempt {attempt + 1}/{max_retries}), retrying in {backoff:.2f} seconds...")
+                time.sleep(backoff)
+            else:
+                logging.error(f"Failed to create MCP client: {error_str}", exc_info=True)
+                if attempt == max_retries - 1:
+                    return None
+
+    return None
 
 def get_system_prompt():
     return """
@@ -106,7 +140,7 @@ You are an expert estate planning assistant. Your goal is to help users create a
 """  
 
 app = BedrockAgentCoreApp()
-agent = create_agent()
+agent = None  # Initialize lazily to prevent cold start bursts
 
 class ToolResult(BaseModel):
     tool_name: str
@@ -172,6 +206,15 @@ class AgentResponse(BaseModel):
 
 @app.entrypoint
 def invoke(payload, context):
+    global agent
+
+    # Lazy initialization to prevent cold start token burst
+    if agent is None:
+        logging.info("Agent not initialized, creating new agent instance")
+        agent = create_agent()
+        if not agent:
+            raise Exception("Failed to initialize agent")
+        logging.info("Agent initialized successfully")
 
     user_message = payload["prompt"]
     user_answers = payload["answers"] if "answers" in payload else {}
@@ -179,7 +222,7 @@ def invoke(payload, context):
 
     if not session_id:
         raise Exception("Session ID is required in the context")
-    
+
     logging.info(f"Received request with session ID: {session_id}")
 
     response = agent(user_message)
@@ -189,9 +232,12 @@ def invoke(payload, context):
     )
 
     structured_result.message = str(response.message["content"][0]["text"])
-    structured_result.answers = structured_result.answers.model_dump(by_alias=True)
 
-    return structured_result
+    # Convert to dict with aliased field names for DynamoDB
+    result_dict = structured_result.model_dump()
+    result_dict["answers"] = structured_result.answers.model_dump(by_alias=True)
+
+    return result_dict
 
 if __name__ == "__main__":
     logging.info("Starting Estate Planning Agent Gateway")
