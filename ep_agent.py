@@ -111,12 +111,55 @@ agent = create_agent()
 class ToolResult(BaseModel):
     tool_name: str
     success: bool
-    data: Any
+    data: Optional[Any] = None
     error_message: Optional[str] = None
 
 class Answers(BaseModel):
     full_name: Optional[str] = Field(default="", alias="client.fullName", description="user's full name")
     gender: Optional[str] = Field(default="", alias="client.gender", description="user's gender")
+    dob: Optional[str] = Field(default="", alias="client.DOB", description="user's date of birth")
+    aka: Optional[str] = Field(default="", alias="client.AKA", description="user's also known as names")
+    city: Optional[str] = Field(default="", alias="client.address.city", description="user's city")
+    state: Optional[str] = Field(default="", alias="client.address.state", description="user's state")
+    email: Optional[str] = Field(default="", alias="client.email", description="user's email")
+    
+    marital_status: Optional[str] = Field(default="", alias="client.maritalStatus", description="user's marital status")
+    dom: Optional[str] = Field(default="", alias="client.DOM", description="user's date of marriage")
+    spouse_full_name: Optional[str] = Field(default="", alias="spouse.fullName", description="spouse's full name")
+    spouse_aka: Optional[str] = Field(default="", alias="spouse.AKA", description="spouse's also known as names")
+    spouse_dob: Optional[str] = Field(default="", alias="spouse.DOB", description="spouse's date of birth")
+    
+    has_children: Optional[str] = Field(default="", alias="client.hasChildren", description="whether user has children")
+    children: Optional[List[Any]] = Field(default_factory=list, alias="client.children", description="user's children")
+    
+    incapacity_primary_name: Optional[str] = Field(default="", alias="representatives.incapacity.primary.fullName", description="primary incapacity representative")
+    incapacity_has_alternates: Optional[str] = Field(default="", alias="representatives.incapacity.hasAlternates", description="whether user has alternate incapacity representatives")
+    incapacity_alternates: Optional[List[Any]] = Field(default_factory=list, alias="representatives.incapacity.alternates", description="user's alternate incapacity representatives")
+    
+    after_death_primary_name: Optional[str] = Field(default="", alias="representatives.afterDeath.primary.fullName", description="primary after death representative")
+    after_death_has_alternates: Optional[str] = Field(default="", alias="representatives.afterDeath.hasAlternates", description="whether user has alternate after death representatives")
+    after_death_alternates: Optional[List[Any]] = Field(default_factory=list, alias="representatives.afterDeath.alternates", description="user's alternate after death representatives")
+    
+    healthcare_primary_name: Optional[str] = Field(default="", alias="representatives.healthcare.primary.fullName", description="primary healthcare representative")
+    healthcare_has_alternates: Optional[str] = Field(default="", alias="representatives.healthcare.hasAlternates", description="whether user has alternate healthcare representatives")
+    healthcare_alternates: Optional[List[Any]] = Field(default_factory=list, alias="representatives.healthcare.alternates", description="user's alternate healthcare representatives")
+    
+    has_guardians: Optional[str] = Field(default="", alias="hasGuardians", description="whether user has guardians for dependents")
+    guardians: Optional[List[Any]] = Field(default_factory=list, alias="guardians", description="user's designated guardians")
+    
+    has_pet_provisions: Optional[str] = Field(default="", alias="client.hasPetProvisions", description="whether user has provisions for pets")
+    pets: Optional[List[Any]] = Field(default_factory=list, alias="client.pets", description="user's pets")
+    pets_caretaker: Optional[str] = Field(default="", alias="client.petsCaretaker", description="designated caretaker for user's pets")
+    pets_care_amount: Optional[str] = Field(default="", alias="client.petsCareAmount", description="amount allocated for pet care")
+    
+    maintain_in_home: Optional[str] = Field(default="", alias="maintainInHome", description="whether to maintain in home")
+    remains_preference: Optional[str] = Field(default="", alias="remainsPreference", description="user's preference for remains")
+    
+    has_specific_gifts: Optional[str] = Field(default="", alias="hasSpecificGifts", description="whether user has specific gifts")
+    specific_gifts: Optional[List[Any]] = Field(default_factory=list, alias="specificGifts", description="user's specific gifts")
+    
+    residuary_distribution: Optional[str] = Field(default="", alias="residuaryDistribution", description="residuary distribution preferences")
+    residuary_named_beneficiaries: Optional[List[Any]] = Field(default_factory=list, alias="residuaryNamedBeneficiaries", description="named beneficiaries for residuary distribution")
 
 
 class AgentResponse(BaseModel):
