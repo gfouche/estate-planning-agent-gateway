@@ -17,15 +17,7 @@ logging.basicConfig(
 )
 
 def load_configuration(config_path):
-    """
-    Load and validate configuration from the specified JSON file path
-    
-    Args:
-        config_path (str): Path to the configuration JSON file
-        
-    Returns:
-        dict: Configuration dictionary with default values if loading fails
-    """
+
     logging.info(f"Loading configuration from {config_path}")
     try:
         with open(config_path, "r") as f:
@@ -37,16 +29,7 @@ def load_configuration(config_path):
         return {"gateway_url": "", "cognito_info": {"client_info": {}}}
 
 def get_access_token(gateway_client, client_info):
-    """
-    Get access token from Cognito using the provided client info
     
-    Args:
-        gateway_client: Initialized GatewayClient instance
-        client_info (dict): Cognito client information
-        
-    Returns:
-        tuple: (access_token, None) if successful, (None, error_message) if failed
-    """
     try:
         # Log client info (with sensitive data masked)
         safe_client_info = client_info.copy()
@@ -65,16 +48,7 @@ def get_access_token(gateway_client, client_info):
         return None, error_msg
 
 def create_agent(config_path=None) -> Agent:
-    """
-    Create and initialize an Agent with Bedrock model and MCP client
-    
-    Args:
-        config_path (str, optional): Path to the configuration JSON file. 
-                                    If None, uses default path.
-    
-    Returns:
-        Agent: Initialized Agent instance with model and tools
-    """
+  
     # Initialize Gateway Client
     logging.info("Initializing Gateway Client")
     gateway_client = GatewayClient(region_name="us-east-1")
@@ -140,17 +114,24 @@ class ToolResult(BaseModel):
     data: Any
     error_message: Optional[str] = None
 
+class Answers(BaseModel):
+    full_name: Optional[str] = Field(default="", alias="client.fullName", description="user's full name")
+    gender: Optional[str] = Field(default="", alias="client.gender", description="user's gender")
+
+
 class AgentResponse(BaseModel):
     status: str = Field(description="success, error, or partial")
     message: str = Field(description="Human-readable response")
     tools_used: List[ToolResult] = Field(default_factory=list)
     action_required: bool = Field(default=False, description="Whether user action is needed")
     metadata: dict = Field(default_factory=dict, description="Additional context")
+    answers: Answers = Field(default_factory=Answers, description="Extracted user information")
 
 @app.entrypoint
 def invoke(payload, context):
 
     user_message = payload["prompt"]
+    user_answers = payload["answers"] if "answers" in payload else {}
     session_id = context.session_id
 
     if not session_id:
@@ -165,6 +146,7 @@ def invoke(payload, context):
     )
 
     structured_result.message = str(response.message["content"][0]["text"])
+    structured_result.answers = structured_result.answers.model_dump(by_alias=True)
 
     return structured_result
 

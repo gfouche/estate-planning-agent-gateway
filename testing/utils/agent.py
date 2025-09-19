@@ -10,7 +10,7 @@ import os
 import boto3
 import yaml
 from typing import Dict, Any, Optional, Union
-from utils.formatting import Colors
+from .formatting import Colors
 
 
 def invoke_agent(prompt: str, 
