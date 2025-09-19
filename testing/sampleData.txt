@@ -1,0 +1,8 @@
+"client.fullName": "Glynn FOuche",
+"client.gender": "male",
+"client.DOB": "10/10/70",
+"client.AKA": "",
+"client.address.city": "Denver",
+"client.address.state": "CO",
+"client.email": "gef@gmail.com",
+"client.maritalStatus": "single",
