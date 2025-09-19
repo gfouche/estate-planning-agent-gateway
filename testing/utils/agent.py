@@ -160,7 +160,7 @@ def get_agent_config() -> Dict[str, Any]:
         Dictionary containing the agent configuration.
     """
     try:
-        with open('agent_config.json', 'r') as f:
+        with open('../agent_config.json', 'r') as f:
             config = json.load(f)
         return config
     except FileNotFoundError:
@@ -180,7 +180,7 @@ def get_agent_arn(agent_name: str) -> Optional[str]:
         ARN string or None if not found
     """
     try:
-        with open(".bedrock_agentcore.yaml", 'r') as f:
+        with open("../.bedrock_agentcore.yaml", 'r') as f:
             runtime_config = yaml.safe_load(f)
             
         if agent_name not in runtime_config.get("agents", {}):
