@@ -1,9 +1,0 @@
-strands-agents
-bedrock-agentcore
-bedrock-agentcore-starter-toolkit
-boto3
-botocore
-s3transfer
-pydantic
-mcp
-typing-extensions
