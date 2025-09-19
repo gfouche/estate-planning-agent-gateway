@@ -118,7 +118,11 @@ def create_agent(config_path=None) -> Agent:
             tools = client.list_tools_sync()
             logging.info(f"Retrieved {len(tools)} tools from MCP gateway")
 
-            return Agent(model=model, tools=tools)
+            return Agent(
+                model=model,
+                tools=tools,
+                system_prompt=get_system_prompt()
+            )
 
         except Exception as e:
             error_str = str(e)
@@ -135,8 +139,28 @@ def create_agent(config_path=None) -> Agent:
 
 def get_system_prompt():
     return """
-You are an expert estate planning assistant. Your goal is to help users create and manage their estate plans, including wills, trusts, powers of attorney, and healthcare directives. You should provide clear, concise, and accurate information based on the user's needs and preferences.
+You are an expert estate planning assistant. Your goal is to help users create and manage their estate plans, including wills, trusts, powers of attorney, and healthcare directives.
 
+IMPORTANT: When users provide answers to estate planning questions, you MUST:
+1. Extract the information from their responses
+2. Use the update_answers tool to save their answers to the database with the EXACT format:
+   {
+     "userId": "user_identifier_here",
+     "answerSet": {
+       "responses": {
+         "client.fullName": "their full name",
+         "client.gender": "their gender",
+         "client.DOB": "their date of birth",
+         // ... other fields using dot notation like client.address.city, spouse.fullName, etc.
+       }
+     }
+   }
+3. Confirm that the information has been saved
+
+The responses object MUST use dot notation for nested fields (e.g., "client.fullName", "client.address.city", "spouse.DOB").
+Always save user responses as you collect them, don't wait until the end of the conversation.
+
+You should provide clear, concise, and accurate information based on the user's needs and preferences.
 """  
 
 app = BedrockAgentCoreApp()
@@ -225,15 +249,45 @@ def invoke(payload, context):
 
     logging.info(f"Received request with session ID: {session_id}")
 
-    # Use structured_output to get both the response and structured data
-    structured_result = agent.structured_output(
-        AgentResponse,
-        user_message  # Pass the user message directly to structured_output
+    # First, let the agent process the message and use tools
+    response = agent(user_message)
+
+    # Create a structured response
+    structured_result = AgentResponse(
+        status="success",
+        message="",
+        tools_used=[],
+        action_required=False,
+        metadata={},
+        answers=Answers()
     )
 
-    # Ensure answers is never None
-    if structured_result.answers is None:
-        structured_result.answers = Answers()
+    # Extract the message from the response
+    try:
+        if hasattr(response, 'message') and response.message:
+            if isinstance(response.message, dict) and "content" in response.message:
+                content = response.message["content"]
+                if isinstance(content, list) and len(content) > 0:
+                    if isinstance(content[0], dict) and "text" in content[0]:
+                        structured_result.message = str(content[0]["text"])
+                    else:
+                        structured_result.message = str(content[0])
+            else:
+                structured_result.message = str(response.message)
+        else:
+            structured_result.message = str(response) if response else "Processing complete"
+    except Exception as e:
+        logging.warning(f"Could not extract message from response: {e}")
+        structured_result.message = "Response processed"
+
+    # Check if any tools were used
+    if hasattr(response, 'tools_used'):
+        for tool in response.tools_used:
+            structured_result.tools_used.append(ToolResult(
+                tool_name=tool.get('name', 'unknown'),
+                success=True,
+                data=tool.get('result', None)
+            ))
 
     # Convert to dict with aliased field names for DynamoDB
     result_dict = structured_result.model_dump()
