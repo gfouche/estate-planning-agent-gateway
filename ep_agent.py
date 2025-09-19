@@ -233,6 +233,10 @@ def invoke(payload, context):
 
     structured_result.message = str(response.message["content"][0]["text"])
 
+    # Ensure answers is never None
+    if structured_result.answers is None:
+        structured_result.answers = Answers()
+
     # Convert to dict with aliased field names for DynamoDB
     result_dict = structured_result.model_dump()
     result_dict["answers"] = structured_result.answers.model_dump(by_alias=True)
