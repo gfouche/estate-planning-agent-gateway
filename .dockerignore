@@ -29,6 +29,7 @@ htmlcov/
 .hypothesis/
 .mypy_cache/
 .ruff_cache/
+testing/
 
 # Development
 *.log
