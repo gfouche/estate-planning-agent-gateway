@@ -47,7 +47,7 @@ def get_access_token(gateway_client, client_info):
         logging.error(error_msg, exc_info=True)
         return None, error_msg
 
-def create_agent(config_path=None) -> Agent:
+def create_agent_with_client(config_path=None):
   
     # Initialize Gateway Client
     logging.info("Initializing Gateway Client")
@@ -74,11 +74,11 @@ def create_agent(config_path=None) -> Agent:
             logging.info(f"Using gateway URL: {gateway_url}")
     else:
         logging.error("Missing required configuration: cognito_info or client_info not found in config")
-        return None
+        return None, None
     
     if not access_token or not gateway_url:
         logging.error("Failed to initialize agent: Missing access token or gateway URL")
-        return None
+        return None, None
  
     logging.info("Creating BedrockModel with Claude Sonnet us-east-1")
     model = BedrockModel(
@@ -86,18 +86,14 @@ def create_agent(config_path=None) -> Agent:
         region_name="us-east-1"
     )
 
-    client = MCPClient(lambda: streamablehttp_client(
+    # Create a factory function for the MCP client
+    def create_mcp_client():
+        return streamablehttp_client(
             gateway_url,
             headers={"Authorization": f"Bearer {access_token}"}
-    ))
-
-    client.start()    
-    logging.info("MCP Client created")
-
-    tools = client.list_tools_sync()
-    logging.info(f"Retrieved {len(tools)} tools from MCP gateway")
+        )
     
-    return Agent(model=model, tools=tools)
+    return create_mcp_client, model
 
 def get_system_prompt():
     return """
@@ -106,7 +102,22 @@ You are an expert estate planning assistant. Your goal is to help users create a
 """  
 
 app = BedrockAgentCoreApp()
-agent = create_agent()
+
+# Get the client factory and model
+client_factory, model = create_agent_with_client()
+
+# Create agent with the MCPClient in a context manager
+if client_factory and model:
+    with MCPClient(client_factory) as client:
+        logging.info("MCP Client created")
+        tools = client.list_tools_sync()
+        logging.info(f"Retrieved {len(tools)} tools from MCP gateway")
+        
+        # Create the agent with the model and tools
+        agent = Agent(model=model, tools=tools)
+else:
+    agent = None
+    logging.error("Failed to create agent: client_factory or model is None")
 
 class ToolResult(BaseModel):
     tool_name: str
@@ -182,6 +193,9 @@ def invoke(payload, context):
     
     logging.info(f"Received request with session ID: {session_id}")
 
+    if agent is None:
+        raise Exception("Agent was not properly initialized")
+
     response = agent(user_message)
     structured_result = agent.structured_output(
         AgentResponse,
@@ -195,5 +209,8 @@ def invoke(payload, context):
 
 if __name__ == "__main__":
     logging.info("Starting Estate Planning Agent Gateway")
-    app.run()
-    logging.info("Agent Gateway shutdown")
+    if agent:
+        app.run()
+        logging.info("Agent Gateway shutdown")
+    else:
+        logging.error("Cannot start application: Agent was not properly initialized")
