@@ -172,7 +172,6 @@ class Answers(BaseModel):
     residuary_distribution: Optional[str] = Field(default="", alias="residuaryDistribution", description="residuary distribution preferences")
     residuary_named_beneficiaries: Optional[List[Any]] = Field(default_factory=list, alias="residuaryNamedBeneficiaries", description="named beneficiaries for residuary distribution")
 
-
 class AgentResponse(BaseModel):
     status: str = Field(description="success, error, or partial")
     message: str = Field(description="Human-readable response")
