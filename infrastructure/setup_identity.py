@@ -6,11 +6,14 @@ from bedrock_agentcore.services.identity import IdentityClient
 from ep_agent.config.settings import Settings
 
 def setup_m2m_credential_provider():
-    """Set up M2M credential provider for gateway access"""
-    settings = Settings()
+    """
+    Set up M2M credential provider for gateway access
     
-    if not settings.validate():
-        raise ValueError("Missing required configuration. Check environment variables.")
+    Raises:
+        ConfigurationError: If required configuration is missing
+    """
+    # Initialize settings - this will validate and raise any configuration errors
+    settings = Settings()
     
     identity_client = IdentityClient(settings.REGION)
     

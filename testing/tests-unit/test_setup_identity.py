@@ -7,6 +7,7 @@ from unittest.mock import patch, Mock, MagicMock
 
 # Import the module we want to test
 from infrastructure.setup_identity import setup_m2m_credential_provider
+from ep_agent.config.settings import ConfigurationError
 
 class TestSetupIdentity(unittest.TestCase):
     """Test cases for the setup_identity module"""
@@ -17,7 +18,7 @@ class TestSetupIdentity(unittest.TestCase):
         """Test successful creation of M2M credential provider"""
         # Setup mock settings
         mock_settings = Mock()
-        mock_settings.validate.return_value = True
+        mock_settings._missing_required = []  # No missing required vars
         mock_settings.M2M_PROVIDER_NAME = "test-provider"
         mock_settings.REGION = "us-east-1"
         mock_settings.DISCOVERY_URL = "https://test-discovery-url"
@@ -39,7 +40,6 @@ class TestSetupIdentity(unittest.TestCase):
         
         # Assertions
         mock_settings_class.assert_called_once()
-        mock_settings.validate.assert_called_once()
         mock_identity_client_class.assert_called_once_with(mock_settings.REGION)
         
         # Verify the credential provider was created with correct configuration
@@ -60,7 +60,7 @@ class TestSetupIdentity(unittest.TestCase):
         """Test when M2M credential provider already exists"""
         # Setup mock settings
         mock_settings = Mock()
-        mock_settings.validate.return_value = True
+        mock_settings._missing_required = []  # No missing required vars
         mock_settings.M2M_PROVIDER_NAME = "existing-provider"
         mock_settings.REGION = "us-east-1"
         
@@ -81,7 +81,6 @@ class TestSetupIdentity(unittest.TestCase):
         
         # Assertions
         mock_settings_class.assert_called_once()
-        mock_settings.validate.assert_called_once()
         mock_identity_client_class.assert_called_once_with(mock_settings.REGION)
         mock_identity_client.create_oauth2_credential_provider.assert_called_once()
         
@@ -91,15 +90,11 @@ class TestSetupIdentity(unittest.TestCase):
     @patch('infrastructure.setup_identity.Settings')
     def test_setup_m2m_credential_provider_validation_failure(self, mock_settings_class):
         """Test validation failure case"""
-        # Setup mock settings with validation failing
-        mock_settings = Mock()
-        mock_settings.validate.return_value = False
+        # Setup mock settings with validation failing - construction will raise the error
+        mock_settings_class.side_effect = ConfigurationError("Missing required configuration")
         
-        # Return mock settings from Settings class constructor
-        mock_settings_class.return_value = mock_settings
-        
-        # The function should raise ValueError
-        with self.assertRaises(ValueError) as context:
+        # The function should raise ConfigurationError
+        with self.assertRaises(ConfigurationError) as context:
             setup_m2m_credential_provider()
         
         # Check exception message
@@ -107,7 +102,6 @@ class TestSetupIdentity(unittest.TestCase):
         
         # Assertions
         mock_settings_class.assert_called_once()
-        mock_settings.validate.assert_called_once()
     
     @patch('infrastructure.setup_identity.IdentityClient')
     @patch('infrastructure.setup_identity.Settings')
@@ -115,7 +109,7 @@ class TestSetupIdentity(unittest.TestCase):
         """Test other exceptions are raised"""
         # Setup mock settings
         mock_settings = Mock()
-        mock_settings.validate.return_value = True
+        mock_settings._missing_required = []  # No missing required vars
         mock_settings.M2M_PROVIDER_NAME = "test-provider"
         mock_settings.REGION = "us-east-1"
         
@@ -136,7 +130,6 @@ class TestSetupIdentity(unittest.TestCase):
         
         # Assertions
         mock_settings_class.assert_called_once()
-        mock_settings.validate.assert_called_once()
         mock_identity_client_class.assert_called_once_with(mock_settings.REGION)
         mock_identity_client.create_oauth2_credential_provider.assert_called_once()
         self.assertEqual(context.exception, test_exception)
