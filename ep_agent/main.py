@@ -3,16 +3,17 @@ Main agent entry point with M2M authentication to AgentCore Gateway
 """
 import asyncio
 import os
-from strands import Agent
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from bedrock_agentcore.identity.auth import requires_access_token
 
 from ep_agent.tools.gateway_client import GatewayClient
 from ep_agent.config.settings import Settings
+from ep_agent.agent_factory import create_agent
 
 # Initialize components
 settings = Settings()
-agent = Agent()
+
+agent = create_agent(model_id=settings.MODEL_ID, region_name=settings.REGION_NAME)
 app = BedrockAgentCoreApp()
 gateway_client = GatewayClient(
     gateway_url=settings.GATEWAY_URL,
@@ -26,8 +27,8 @@ def invoke(payload):
         user_message = payload.get("prompt", "Hello")
         
         # Route to appropriate handler
-        if "weather" in user_message.lower():
-            result = asyncio.run(handle_weather_request(user_message))
+        if "questions" in user_message.lower():
+            result = asyncio.run(handle_questions_request(user_message))
             return result
         elif "gateway" in user_message.lower():
             result = asyncio.run(handle_gateway_request(user_message))
@@ -40,16 +41,16 @@ def invoke(payload):
     except Exception as e:
         return f"Error: {str(e)}"
 
-async def handle_weather_request(message: str) -> str:
-    """Handle weather-related requests via gateway"""
+async def handle_questions_request(message: str) -> str:
+    """Handle questions-related requests via gateway"""
     try:
         result = await gateway_client.call_tool(
-            "get_current_weather",
-            {"city": "San Francisco", "country": "US"}
+            "get_questions",
+            {"docType": "Will"}
         )
-        return f"Weather data: {result}"
+        return f"Questions data: {result}"
     except Exception as e:
-        return f"Weather service error: {str(e)}"
+        return f"Questions service error: {str(e)}"
 
 async def handle_gateway_request(message: str) -> str:
     """Handle general gateway requests"""
