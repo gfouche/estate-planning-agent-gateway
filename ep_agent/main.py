@@ -7,8 +7,8 @@ from strands import Agent
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from bedrock_agentcore.identity.auth import requires_access_token
 
-from agent.tools.gateway_client import GatewayClient
-from agent.config.settings import Settings
+from ep_agent.tools.gateway_client import GatewayClient
+from ep_agent.config.settings import Settings
 
 # Initialize components
 settings = Settings()
