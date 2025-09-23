@@ -5,7 +5,7 @@ import os
 import unittest
 from pathlib import Path
 
-from ep_agent.config.settings import Settings
+from settings import Settings
 
 class TestEnvironmentVariables(unittest.TestCase):
     """Test case for .env file validation"""

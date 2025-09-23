@@ -6,14 +6,21 @@ import os
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from bedrock_agentcore.identity.auth import requires_access_token
 
-from ep_agent.tools.gateway_client import GatewayClient
-from ep_agent.config.settings import Settings
-from ep_agent.agent_factory import create_agent
+# Import from flattened structure
+from gateway_client import GatewayClient
+from settings import Settings
+from agent_factory import create_agent
+
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # Initialize components
 settings = Settings()
-
-agent = create_agent(model_id=settings.MODEL_ID, region_name=settings.REGION_NAME)
+agent = create_agent(model_id=settings.MODEL_ID, region_name=settings.REGION)
 app = BedrockAgentCoreApp()
 gateway_client = GatewayClient(
     gateway_url=settings.GATEWAY_URL,
@@ -62,4 +69,9 @@ async def handle_gateway_request(message: str) -> str:
         return f"Gateway error: {str(e)}"
 
 if __name__ == "__main__":
-    app.run()
+    logging.info("Starting Estate Planning Agent")
+    if agent:
+        app.run()
+        logging.info("Agent shutdown")
+    else:
+        logging.error("Cannot start application: Agent was not properly initialized")

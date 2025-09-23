@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 @pytest.fixture
 def mock_settings():
     """Fixture for mocked Settings class"""
-    with patch('ep_agent.config.settings.Settings') as mock_settings_class:
+    with patch('settings.Settings') as mock_settings_class:
         mock_settings = mock_settings_class.return_value
         mock_settings.REGION = "us-east-1"
         mock_settings.AGENT_NAME = "test-agent"

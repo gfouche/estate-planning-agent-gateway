@@ -6,14 +6,14 @@ import unittest
 from unittest.mock import patch, Mock, MagicMock
 
 # Import the module we want to test
-from infrastructure.setup_identity import setup_m2m_credential_provider
-from ep_agent.config.settings import ConfigurationError
+from setup_identity import setup_m2m_credential_provider
+from settings import ConfigurationError
 
 class TestSetupIdentity(unittest.TestCase):
     """Test cases for the setup_identity module"""
     
-    @patch('infrastructure.setup_identity.IdentityClient')
-    @patch('infrastructure.setup_identity.Settings')
+    @patch('setup_identity.IdentityClient')
+    @patch('setup_identity.Settings')
     def test_setup_m2m_credential_provider_success(self, mock_settings_class, mock_identity_client_class):
         """Test successful creation of M2M credential provider"""
         # Setup mock settings
@@ -54,8 +54,8 @@ class TestSetupIdentity(unittest.TestCase):
         self.assertEqual(result["providerArn"], 
                          "arn:aws:bedrock:us-east-1:123456789012:credential-provider/test-provider")
     
-    @patch('infrastructure.setup_identity.IdentityClient')
-    @patch('infrastructure.setup_identity.Settings')
+    @patch('setup_identity.IdentityClient')
+    @patch('setup_identity.Settings')
     def test_setup_m2m_credential_provider_already_exists(self, mock_settings_class, mock_identity_client_class):
         """Test when M2M credential provider already exists"""
         # Setup mock settings
@@ -87,7 +87,7 @@ class TestSetupIdentity(unittest.TestCase):
         # Result should be None since we're handling the exception
         self.assertIsNone(result)
     
-    @patch('infrastructure.setup_identity.Settings')
+    @patch('setup_identity.Settings')
     def test_setup_m2m_credential_provider_validation_failure(self, mock_settings_class):
         """Test validation failure case"""
         # Setup mock settings with validation failing - construction will raise the error
@@ -103,8 +103,8 @@ class TestSetupIdentity(unittest.TestCase):
         # Assertions
         mock_settings_class.assert_called_once()
     
-    @patch('infrastructure.setup_identity.IdentityClient')
-    @patch('infrastructure.setup_identity.Settings')
+    @patch('setup_identity.IdentityClient')
+    @patch('setup_identity.Settings')
     def test_setup_m2m_credential_provider_other_exception(self, mock_settings_class, mock_identity_client_class):
         """Test other exceptions are raised"""
         # Setup mock settings

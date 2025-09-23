@@ -3,7 +3,7 @@ Set up AgentCore Identity and credential providers
 """
 import os
 from bedrock_agentcore.services.identity import IdentityClient
-from ep_agent.config.settings import Settings
+from settings import Settings
 
 def setup_m2m_credential_provider():
     """

@@ -5,7 +5,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from ep_agent.config.settings import Settings, ConfigurationError
+from settings import Settings, ConfigurationError
 
 class TestSettings(unittest.TestCase):
     """Test cases for the Settings class"""

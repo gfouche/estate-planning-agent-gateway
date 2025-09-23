@@ -22,6 +22,7 @@ class Settings:
         # AgentCore Configuration
         self.REGION = self._get_env("AWS_REGION", default="us-east-1", required=True)
         self.AGENT_NAME = self._get_env("AGENT_NAME", required=True)
+        self.MODEL_ID = self._get_env("MODEL_ID", default="anthropic.claude-v2", required=False)
         
         # Cognito Configuration - Critical settings with no defaults
         self.COGNITO_USER_POOL_ID = self._get_env("COGNITO_USER_POOL_ID", required=True)
