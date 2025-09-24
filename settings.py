@@ -2,7 +2,21 @@
 Configuration management for AgentCore application
 """
 import os
+import pathlib
 from typing import Optional, Any
+
+# Import and load dotenv
+try:
+    from dotenv import load_dotenv
+    # Look for .env file in the current directory and parent directories
+    env_file = pathlib.Path(__file__).parent / ".env"
+    if env_file.exists():
+        load_dotenv(dotenv_path=env_file)
+        print(f"✅ Loaded environment variables from {env_file}")
+    else:
+        print(f"⚠️ No .env file found at {env_file}")
+except ImportError:
+    print("⚠️ python-dotenv not installed. Environment variables will only be loaded from system environment.")
 
 class ConfigurationError(Exception):
     """Exception raised for configuration errors"""

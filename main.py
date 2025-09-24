@@ -10,6 +10,7 @@ from bedrock_agentcore.identity.auth import requires_access_token
 from gateway_client import GatewayClient
 from settings import Settings
 from agent_factory import create_agent
+from setup_identity import setup_m2m_credential_provider
 
 import logging
 
@@ -20,6 +21,11 @@ logging.basicConfig(
 
 # Initialize components
 settings = Settings()
+
+# Set up identity provider for M2M auth
+credential_provider = setup_m2m_credential_provider()
+logging.info(f"Identity provider initialized: {settings.M2M_PROVIDER_NAME}")
+
 agent = create_agent(model_id=settings.MODEL_ID, region_name=settings.REGION)
 app = BedrockAgentCoreApp()
 gateway_client = GatewayClient(
@@ -32,20 +38,28 @@ def invoke(payload):
     """Main agent entry point"""
     try:
         user_message = payload.get("prompt", "Hello")
-        
+        logging.info(f"Received payload: {payload}")
+
         # Route to appropriate handler
         if "questions" in user_message.lower():
+            logging.info("Routing to handle_questions_request")
             result = asyncio.run(handle_questions_request(user_message))
+            logging.info(f"handle_questions_request result: {result}")
             return result
         elif "gateway" in user_message.lower():
+            logging.info("Routing to handle_gateway_request")
             result = asyncio.run(handle_gateway_request(user_message))
+            logging.info(f"handle_gateway_request result: {result}")
             return result
         else:
             # Standard agent processing
+            logging.info("Routing to standard agent processing")
             response = agent(user_message)
-            return str(response)
-            
+            logging.info(f"Agent response: {response}")
+            return response
+
     except Exception as e:
+        logging.error(f"Error during invoke: {str(e)}")
         return f"Error: {str(e)}"
 
 async def handle_questions_request(message: str) -> str:

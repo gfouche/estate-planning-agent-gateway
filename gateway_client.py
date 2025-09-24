@@ -10,9 +10,18 @@ class GatewayClient:
     def __init__(self, gateway_url: str, provider_name: str):
         self.gateway_url = gateway_url
         self.provider_name = provider_name
+        
+    def __requires_access_token_kwargs__(self):
+        """
+        Dynamic configuration for requires_access_token decorator
+        This overrides any default values in the decorator
+        """
+        return {
+            "provider_name": self.provider_name
+        }
     
     @requires_access_token(
-        provider_name="gateway-m2m-provider",  # Will be parameterized
+        provider_name=None,  # Will be set from __requires_access_token_kwargs__
         scopes=[],
         auth_flow='M2M',
         force_authentication=False  # Enable AgentCore caching
@@ -42,7 +51,7 @@ class GatewayClient:
         return response.json()
     
     @requires_access_token(
-        provider_name="gateway-m2m-provider",
+        provider_name=None,  # Will be set from __requires_access_token_kwargs__
         scopes=[],
         auth_flow='M2M',
         force_authentication=False
@@ -75,7 +84,7 @@ class GatewayClient:
         return []
     
     @requires_access_token(
-        provider_name="gateway-m2m-provider",
+        provider_name=None,  # Will be set from __requires_access_token_kwargs__
         scopes=[],
         auth_flow='M2M',
         force_authentication=False
