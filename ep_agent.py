@@ -3,12 +3,7 @@ from strands import Agent
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any
 from strands.models import BedrockModel
-from strands.tools.mcp.mcp_client import MCPClient
-from mcp.client.streamable_http import streamablehttp_client
 from bedrock_agentcore import BedrockAgentCoreApp
-from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayClient
-import os
-import json
 import logging
 from dotenv import load_dotenv
 
@@ -24,14 +19,27 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+def create_agent(mcp_client) -> Agent:
+       
+    logging.info("Creating BedrockModel with Claude Sonnet us-east-1")
+    model = BedrockModel(
+        model_id="global.anthropic.claude-sonnet-4-20250514-v1:0",
+        region_name="us-east-1"
+    )
+
+    tools = mcp_client.list_tools_sync()
+    logging.info(f"Retrieved {len(tools)} tools from MCP gateway")
+    
+    return Agent(model=model, tools=tools)
+
 # Global components - will be initialized based on configuration
 settings: Optional[Settings] = None
 gateway_client: Optional[WillGatewayClient] = None
-# interview_manager: Optional[WillInterviewManager] = None
+agent: Optional[Agent] = None
 
 def initialize_components():
     """Initialize components with graceful error handling for container deployment"""
-    global settings, gateway_client, interview_manager
+    global settings, gateway_client, agent
 
     try:
         # Load settings
@@ -40,13 +48,14 @@ def initialize_components():
         # Validate configuration for runtime
         settings.validate_for_runtime()
         # Initialize gateway client
-        gateway_client = WillGatewayClient(
+        clientFactory = WillGatewayClient(
             gateway_url=settings.GATEWAY_URL,
             provider_name=settings.M2M_PROVIDER_NAME
         )
 
-        # # Initialize interview manager
-        # interview_manager = WillInterviewManager(gateway_client)
+        gateway_client =  clientFactory.get_mcp_client()
+
+        agent = create_agent(gateway_client)
 
         logging.info("DIY Will Agent initialized successfully")
         logging.info(f"   Agent: {settings.AGENT_NAME}")
@@ -65,97 +74,7 @@ def initialize_components():
 # Initialize components on module load
 COMPONENTS_READY = initialize_components()
 
-def load_configuration(config_path):
-
-    logging.info(f"Loading configuration from {config_path}")
-    try:
-        with open(config_path, "r") as f:
-            config = json.load(f)
-        logging.info("Configuration loaded successfully")
-        return config
-    except Exception as e:
-        logging.error(f"Error loading configuration: {str(e)}")
-        return {"gateway_url": "", "cognito_info": {"client_info": {}}}
-
-def get_access_token(gateway_client, client_info):
-    
-    try:
-        # Log client info (with sensitive data masked)
-        safe_client_info = client_info.copy()
-        if "client_secret" in safe_client_info:
-            secret = safe_client_info["client_secret"]
-            safe_client_info["client_secret"] = f"{secret[:5]}...{secret[-5:]}" if len(secret) > 10 else "***masked***"
-        logging.info(f"Client info parameters: {json.dumps(safe_client_info)}")
-        
-        logging.info("Getting access token from Cognito")
-        access_token = gateway_client.get_access_token_for_cognito(client_info)
-        logging.info("Access token obtained successfully")
-        return access_token, None
-    except Exception as e:
-        error_msg = f"Error accessing gateway: {str(e)}"
-        logging.error(error_msg, exc_info=True)
-        return None, error_msg
-
-def create_agent(config_path=None) -> Agent:
-  
-    # Initialize Gateway Client
-    logging.info("Initializing Gateway Client")
-    gateway_client = GatewayClient(region_name="us-east-1")
-    
-    # Load configuration
-    if config_path is None:
-        config_path = os.path.join(os.path.dirname(__file__), "agent_config.json")
-    
-    config = load_configuration(config_path)
-    access_token = None
-    gateway_url = None
-    
-    # Get access token and gateway URL
-    if "cognito_info" in config and "client_info" in config["cognito_info"]:
-        access_token, error = get_access_token(
-            gateway_client, 
-            config["cognito_info"]["client_info"]
-        )
-        
-        if access_token:
-            # Get gateway URL from configuration
-            gateway_url = config.get("gateway_url", "https://your-gateway-url.amazonaws.com")
-            logging.info(f"Using gateway URL: {gateway_url}")
-    else:
-        logging.error("Missing required configuration: cognito_info or client_info not found in config")
-        return None
-    
-    if not access_token or not gateway_url:
-        logging.error("Failed to initialize agent: Missing access token or gateway URL")
-        return None
- 
-    logging.info("Creating BedrockModel with Claude Sonnet us-east-1")
-    model = BedrockModel(
-        model_id="global.anthropic.claude-sonnet-4-20250514-v1:0",
-        region_name="us-east-1"
-    )
-
-    client = MCPClient(lambda: streamablehttp_client(
-            gateway_url,
-            headers={"Authorization": f"Bearer {access_token}"}
-    ))
-
-    client.start()    
-    logging.info("MCP Client created")
-
-    tools = client.list_tools_sync()
-    logging.info(f"Retrieved {len(tools)} tools from MCP gateway")
-    
-    return Agent(model=model, tools=tools)
-
-def get_system_prompt():
-    return """
-You are an expert estate planning assistant. Your goal is to help users create and manage their estate plans, including wills, trusts, powers of attorney, and healthcare directives. You should provide clear, concise, and accurate information based on the user's needs and preferences.
-
-"""  
-
 app = BedrockAgentCoreApp()
-agent = create_agent()
 
 class ToolResult(BaseModel):
     tool_name: str
