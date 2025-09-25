@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 #local imports
 from settings import Settings
+from gateway_client import WillGatewayClient
 
 # Load environment variables from .env file for local development
 load_dotenv()
@@ -25,7 +26,7 @@ logging.basicConfig(
 
 # Global components - will be initialized based on configuration
 settings: Optional[Settings] = None
-# gateway_client: Optional[WillGatewayClient] = None
+gateway_client: Optional[WillGatewayClient] = None
 # interview_manager: Optional[WillInterviewManager] = None
 
 def initialize_components():
@@ -38,11 +39,11 @@ def initialize_components():
 
         # Validate configuration for runtime
         settings.validate_for_runtime()
-        # # Initialize gateway client
-        # gateway_client = WillGatewayClient(
-        #     gateway_url=settings.GATEWAY_URL,
-        #     provider_name=settings.M2M_PROVIDER_NAME
-        # )
+        # Initialize gateway client
+        gateway_client = WillGatewayClient(
+            gateway_url=settings.GATEWAY_URL,
+            provider_name=settings.M2M_PROVIDER_NAME
+        )
 
         # # Initialize interview manager
         # interview_manager = WillInterviewManager(gateway_client)
