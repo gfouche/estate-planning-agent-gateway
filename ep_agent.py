@@ -10,11 +10,59 @@ from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayC
 import os
 import json
 import logging
+from dotenv import load_dotenv
+
+#local imports
+from settings import Settings
+
+# Load environment variables from .env file for local development
+load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+
+# Global components - will be initialized based on configuration
+settings: Optional[Settings] = None
+# gateway_client: Optional[WillGatewayClient] = None
+# interview_manager: Optional[WillInterviewManager] = None
+
+def initialize_components():
+    """Initialize components with graceful error handling for container deployment"""
+    global settings, gateway_client, interview_manager
+
+    try:
+        # Load settings
+        settings = Settings()
+
+        # Validate configuration for runtime
+        settings.validate_for_runtime()
+        # # Initialize gateway client
+        # gateway_client = WillGatewayClient(
+        #     gateway_url=settings.GATEWAY_URL,
+        #     provider_name=settings.M2M_PROVIDER_NAME
+        # )
+
+        # # Initialize interview manager
+        # interview_manager = WillInterviewManager(gateway_client)
+
+        logging.info("DIY Will Agent initialized successfully")
+        logging.info(f"   Agent: {settings.AGENT_NAME}")
+        logging.info(f"   Model: {settings.MODEL_ID}")
+        logging.info(f"   Gateway: {settings.GATEWAY_URL[:50]}...")
+
+        return True
+
+    except RuntimeError as e:
+        logging.error(f"Configuration Error: {str(e)}")
+        return False
+    except Exception as e:
+        logging.error(f"Initialization Error: {str(e)}")
+        return False
+
+# Initialize components on module load
+COMPONENTS_READY = initialize_components()
 
 def load_configuration(config_path):
 
@@ -160,7 +208,6 @@ class Answers(BaseModel):
     
     residuary_distribution: Optional[str] = Field(default="", alias="residuaryDistribution", description="residuary distribution preferences")
     residuary_named_beneficiaries: Optional[List[Any]] = Field(default_factory=list, alias="residuaryNamedBeneficiaries", description="named beneficiaries for residuary distribution")
-
 
 class AgentResponse(BaseModel):
     status: str = Field(description="success, error, or partial")
